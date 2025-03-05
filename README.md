@@ -1,0 +1,1 @@
+# Projeto-elevador---STR-2024.2
