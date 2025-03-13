@@ -82,9 +82,9 @@ Abra um Pull Request.
 ## Autores
 Ádson Vital Correia (adson.correia@ee.ufcg.edu.br); 
 
-Arthur
+Arthur de Queiroz Tavares Borges Mesquisa (arthur.mesquita@ee.ufcg.edu.br)
 
-Ivan da Silva Filho
+Ivan da Silva Filho (ivan.filho@ee.ufcg.edu.br)
 
 ## Licença
 Distribuído sob a licença MIT. Veja LICENSE para detalhes.
