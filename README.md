@@ -8,10 +8,10 @@ Este projeto implementa um **simulador de elevador concorrente** em C++, utiliza
 
 ## Funcionalidades
 
-- **Controle concorrente de usuários** através de threads.
-- **Uso de semáforos** para sincronização e exclusão mútua.
-- **Fila FIFO** para gerenciamento de chamadas.
-- Simulação de movimento entre andares com tempos de embarque/desembarque.
+- **Controle concorrente de usuários** através de threads;
+- **Uso de semáforos** para sincronização e exclusão mútua;
+- **Fila FIFO** para gerenciamento de chamadas;
+- Simulação de movimento entre andares com tempos de embarque/desembarque;
 - Logs detalhados para acompanhamento em tempo real.
 
 ## Regras do Elevador
