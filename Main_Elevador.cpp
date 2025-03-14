@@ -1,125 +1,118 @@
 #include <iostream>
 #include <queue>
-#include <thread>
-#include <chrono>
-#include <random>
-#include <semaphore>
-#include <atomic>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
+#define NUM_ANDARES 5 
 
-// =============================================
-// Estrutura de dados para representar uma chamada
-// =============================================
-struct Chamada {
-    int id;         // Identificador do usuário
-    int origem;     // Andar onde o usuário está
-    int destino;    // Andar para onde o usuário quer ir
+//variáveis 
+struct ChamadaElevador {
+    int usuario;
+    int origem;
+    int destino;
 };
+queue<ChamadaElevador> filaChamadas;
+sem_t semChamadas; //sémaforo das chamadas 
+sem_t semFila; //sémaforo da fila
+int andarAtual = 0;
 
-// =============================================
-// Variáveis globais de sincronização
-// =============================================
-queue<Chamada> fila;                        // Fila compartilhada de chamadas
-binary_semaphore sem_fila(1);               // Controla acesso exclusivo à fila (substituto do mutex)
-counting_semaphore<INT_MAX> sem_chamadas(0); // Contador de chamadas pendentes
-atomic<bool> executando(true);              // Flag para controle de execução
-int andar_atual = 0;                        // Estado atual do elevador
-
-// =============================================
-// Gerador de números aleatórios (andares 0-4)
-// =============================================
-random_device rd;
-mt19937 gen(rd());
-
-// =============================================
-// Lógica principal do elevador
-// =============================================
-void elevador() {
-    while (executando) {
-        sem_chamadas.acquire(); // Bloqueia até haver chamadas (decrementa o contador)
-
-        // ---- Seção crítica: acesso à fila ----
-        sem_fila.acquire(); // Bloqueia acesso à fila
-        Chamada chamada = fila.front(); // Lê a primeira chamada
-        fila.pop();         // Remove da fila
-        sem_fila.release(); // Libera acesso à fila
-        // ---------------------------------------
-
-        // Processamento da chamada
-        cout << "[Elevador] Nova chamada recebida de Usuário " << chamada.id 
-             << ": Andar " << chamada.origem << " -> " << chamada.destino << endl;
-
-        // Movimento para origem do usuário
-        while (andar_atual != chamada.origem) {
-            this_thread::sleep_for(1s); // Simula tempo de movimento
-            andar_atual += (chamada.origem > andar_atual) ? 1 : -1;
-            cout << "[Elevador] Movendo-se para o andar " << andar_atual << "..." << endl;
-        }
-
-        cout << "[Elevador] Chegou ao andar " << andar_atual << ". Usuário " 
-             << chamada.id << " embarcou." << endl;
-
-        this_thread::sleep_for(2s); // Simula tempo de embarque
-
-        // Movimento para destino do usuário
-        while (andar_atual != chamada.destino) {
-            this_thread::sleep_for(1s);
-            andar_atual += (chamada.destino > andar_atual) ? 1 : -1;
-            cout << "[Elevador] Movendo-se para o andar " << andar_atual << "..." << endl;
-        }
-
-        cout << "[Elevador] Chegou ao andar " << andar_atual << ". Usuário " 
-             << chamada.id << " desembarcou." << endl;
+//deslocamento elevador
+void moverPara(int destino) {
+    while (andarAtual != destino) {
+        sleep(2); 
+        if (andarAtual < destino) andarAtual++;
+        else andarAtual--;
+        cout << "[Elevador] Movendo-se para o andar " << andarAtual << "..." << endl;
     }
 }
 
-// =============================================
-// Lógica de geração de usuários
-// =============================================
-void usuario(int id) {
-    uniform_int_distribution<> andares(0, 4);
-    Chamada chamada;
-    chamada.id = id;
-    
-    // Garante origem e destino diferentes
-    do {
-        chamada.origem = andares(gen);
-        chamada.destino = andares(gen);
-    } while (chamada.origem == chamada.destino);
-
-    // ---- Seção crítica: adição à fila ----
-    sem_fila.acquire(); // Bloqueia acesso à fila
-    cout << "[Usuário " << id << "] Chamando o elevador do andar " 
-         << chamada.origem << " para o andar " << chamada.destino << "." << endl;
-    fila.push(chamada); // Adiciona chamada à fila
-    sem_fila.release(); // Libera acesso à fila
-    // ---------------------------------------
-
-    sem_chamadas.release(); // Notifica o elevador (+1 chamada)
-}
-
-// =============================================
-// Função principal
-// =============================================
-int main() {
+//thread elevador 
+void* elevador(void*) {
     cout << "[Elevador] Inicializado no andar 0. Aguardando chamadas..." << endl;
+    while (true) {
+        sem_wait(&semChamadas); // espera chamadas
 
-    thread elevator_thread(elevador); // Inicia thread do elevador
-    vector<thread> usuarios;          // Pool de threads de usuários
-    int id_counter = 1;               // Contador de IDs
+        while (true) { // enquanto houver chamadas atende qnd acbar sai do loop
+            sem_wait(&semFila);
+            if (filaChamadas.empty()) {
+                sem_post(&semFila);
+                break; 
+            }
 
-    // Gera usuários aleatoriamente
-    while (executando) {
-        this_thread::sleep_for(chrono::seconds(rand() % 3 + 1)); // Intervalo entre 1-3 segundos
-        usuarios.emplace_back(usuario, id_counter++); // Cria nova thread de usuário
+
+
+            ChamadaElevador chamada = filaChamadas.front(); //manutenção da fila 
+            filaChamadas.pop();
+            sem_post(&semFila); 
+
+            cout << "[Elevador] Nova chamada recebida de Usuário " << chamada.usuario
+                 << ": Andar " << chamada.origem << " -> " << chamada.destino << "." << endl;
+            moverPara(chamada.origem);
+            cout << "[Elevador] Chegou ao andar " << chamada.origem << ". Usuário " << chamada.usuario << " embarcou." << endl;
+            sleep(1);
+            moverPara(chamada.destino);
+            cout << "[Elevador] Chegou ao andar " << chamada.destino << ". Usuário " << chamada.usuario << " desembarcou." << endl;
+            sleep(1); 
+        }
+
+        cout << "[Elevador] Nenhuma chamada pendente. Retornando ao modo de espera." << endl;
     }
+    return NULL;
+}
 
-    // Finalização
-    elevator_thread.join();
-    for (auto& t : usuarios) {
-        if (t.joinable()) t.join();
+//   thread usuário
+void* usuario(void* arg) {
+
+
+
+
+    int id = *((int*)arg);
+    delete (int*)arg;
+    //randomiza o andar de origem e pra onde ele vai 
+    int origem = rand() % NUM_ANDARES;
+    int destino;
+    do {
+        destino = rand() % NUM_ANDARES;
+    } while (destino == origem);
+
+    cout << "[Usuário " << id << "] Chamando o elevador do andar " << origem << " para " << destino << "." << endl;
+    sem_wait(&semFila);
+    filaChamadas.push({id, origem, destino});
+    sem_post(&semFila);
+    
+
+    sem_post(&semChamadas); 
+    return NULL;
+}
+
+// continua criando usuários de forma indefinida 
+
+void* gerarUsuarios(void*) {
+    int id = 1;
+    while (true) {
+        sleep(rand() % 4 + 1); 
+        int* novoId = new int(id++);
+        pthread_t tUsuario;
+        pthread_create(&tUsuario, NULL, usuario, novoId);
+        pthread_detach(tUsuario); 
     }
+    return NULL;
+}
 
+int main() {
+
+    srand(time(NULL));
+    pthread_t tElevador, tGeradorUsuarios; //gera as threads do delegador e do usuário
+
+    sem_init(&semChamadas, 0, 0);
+    sem_init(&semFila, 0, 1);
+
+    pthread_create(&tElevador, NULL, elevador, NULL);
+    pthread_create(&tGeradorUsuarios, NULL, gerarUsuarios, NULL);
+    pthread_join(tElevador, NULL); 
     return 0;
 }
