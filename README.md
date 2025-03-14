@@ -5,7 +5,6 @@
 
 Este projeto implementa um **simulador de elevador concorrente** em C++, utilizando threads e semáforos para gerenciar múltiplos usuários em um prédio de 5 andares. O sistema garante o atendimento de chamadas em ordem FIFO, evitando condições de corrida e garantindo sincronização entre as threads. O objetivo principal é simular o movimento do elevador de forma eficiente, seguindo regras pré-definidas.
 
-![Diagrama do Sistema](https://via.placeholder.com/800x400.png?text=Diagrama+do+Fluxo+do+Elevador) <!-- Substitua pelo link da imagem -->
 
 ## Funcionalidades
 
