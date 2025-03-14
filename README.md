@@ -59,20 +59,22 @@ Pré-requisitos:
 
 Compilação e Execução
 # Clone o repositório
+```plaintext
 git clone https://github.com/seu-usuario/projeto-elevador.git
-
+```
 # Compile o código
+```plaintext
 g++ -pthread Main_Elevador.cpp -o elevador
-
+```
 # Execute o programa
+```plaintext
 ./elevador
-
+```
 ## Análise de Sincronização
 O sistema utiliza dois semáforos:
 
-semFila (binário): Controla acesso à fila de chamadas.
-
-semChamadas (contador): Notifica o elevador sobre novas requisições.
+- semFila (binário): Controla acesso à fila de chamadas.
+- semChamadas (contador): Notifica o elevador sobre novas requisições.
 
 
 ## Contribuições
